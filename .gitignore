@@ -1,0 +1,9 @@
+*.o
+
+tags
+
+#ignore vim temporary files 
+.*.swp
+
+#ignore python temporary files 
+*.pyc

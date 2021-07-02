@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<bench>
+  <logger> 1 </logger>
+  <rep_tp_factor> 2 </rep_tp_factor>
+  <rep_ap_factor> 0 </rep_ap_factor>
+  <epoch_type> 4 </epoch_type>
+  <backup_threads> 4 </backup_threads>
+  <query_threads> 0 </query_threads>
+
+  <epoch> 0 </epoch>
+  <sync_ms> 20 </sync_ms>
+
+  <bstore_type> 0 </bstore_type>
+  <col_split> 2 </col_split>
+  <use_index> 1 </use_index>
+  <lazy_index> 0 </lazy_index>
+
+  <!-- only need mofdify here -->
+  <client> 1 </client>
+  <on_fly> 100 </on_fly>
+  <send_rate> 1 </send_rate>
+  <!-- only need mofdify here -->
+  
+  <run_sec> 20 </run_sec>
+  <txn_end_sec> 100 </txn_end_sec>
+  <q_start_sec> 0 </q_start_sec>
+  <q_round> 500 </q_round>
+
+  <servers>
+    <num> 16 </num>
+    <mapping>
+      <a> val00 </a>
+      <a> val01 </a>
+      <a> val02 </a>
+      <a> val03 </a>
+      <a> val04 </a>
+      <a> val05 </a>
+      <a> val06 </a>
+      <a> val07 </a>
+      <a> val08 </a>
+      <a> val09 </a>
+      <a> val10 </a>
+      <a> val11 </a>
+      <a> val12 </a>
+      <a> val13 </a>
+      <a> val14 </a>
+      <a> val15 </a>
+    </mapping>
+  </servers>
+
+  <ch>
+    <new>45</new>
+    <pay>43</pay>
+    <del>4</del>
+    <stock>4</stock>
+    <order>4</order>
+
+    <query> 1 </query>
+  </ch>
+</bench>
