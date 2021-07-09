@@ -86,7 +86,6 @@ struct Ctx : public BaseCtx {
 
 
 void query(void *arg);
-void foo(void *arg);
 
 } // namespace anonymous
 
@@ -135,7 +134,6 @@ bool ChQueryWorker::query03(yield_func_t &yield) {
   
   timer_start(timer);
   parallel_process(ctxs, query);
-  // parallel_process(ctxs, foo);
   timer_end_print(timer, "Parallel");
   
   /**************** Parallel Part End ********************/
@@ -180,8 +178,6 @@ bool ChQueryWorker::query03(yield_func_t &yield) {
 }  // namespace nocc
 
 namespace {
-void foo(void *arg) { }
-
 void query(void *arg) {
   uint64_t cnt = 0;
 
@@ -266,19 +262,11 @@ void query(void *arg) {
           ++cnt;
         }
       } else {
-        for (int i = 0; i < ol_keys_sz; ++i) {
-          uint64_t ol_key = ol_keys[i];
-          if (ol_key >= start_ol_key && ol_key <= end_ol_key) {
-            revenue += ol_amounts[i];
-            ++cnt;
-          }
-        }
+        assert(false);
       }
 
-#if 0
       ctx.sub_result.emplace_back(no_o_id, no_w_id, no_d_id, 
                                   revenue, o_entry_ds[o_i]);
-#endif
     }
 #endif
 
