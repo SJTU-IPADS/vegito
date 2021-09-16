@@ -121,7 +121,6 @@ void query(void *arg) {
 
   Keys o_keys = o_tbl->getKeyCol();
 
-#if 1
   for (uint64_t o_i = ctx.off_begin; o_i < ctx.off_end; ++o_i) {
     int64_t o_key = (int64_t) o_keys[o_i];
     int32_t o_w_id = orderKeyToWare(o_key);
@@ -139,20 +138,16 @@ void query(void *arg) {
       assert(o_ol_cnt > 0);
 
       for (uint64_t ol_key = ol_key_begin; ol_key <= ol_key_end; ++ol_key) {
-#if 1
         uint32_t *ol_delivery_d = (uint32_t *) ctx.db.Get(ORLI, ol_key, OL_DELIVERY_D, ctx.ver, &ctx.walk_cnt);
         if (ol_delivery_d == nullptr) continue;
 
         if (*ol_delivery_d >= o_entry_d) {
           ctx.sub_result[o_ol_cnt - 1]++;
           cnt++; // access orderline record(including both valid and invalid record)
-          break;
         }
-#endif
       }
     }
   }
-#endif
   ctx.cnt = cnt;
 }
 
