@@ -30,7 +30,7 @@
 #define timer_end(timer, ctx, i) { ctx.mem_ms[i] += timer.get_diff_ms(); }
 #define timer_end_print(timer, str) { \
   float t = timer.get_diff_ms(); \
-  printf("%s: %f\n", str, t); \
+  printf("%s: %f ms\n", str, t); \
 } while(0)
 
 #define print_timer(ctxs) { \

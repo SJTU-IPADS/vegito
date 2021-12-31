@@ -32,6 +32,10 @@ using namespace nocc::oltp::ch;
 
 #define Q21_STABLE_SORT 1
 
+#define Q21_STAT_JOIN (STAT_JOIN == 21)
+#define TIMER Q21_STAT_JOIN
+#include "ch_query_timer.h"
+
 namespace {
 
 const char* N_NAME_STR = "GERMANY";
@@ -135,6 +139,7 @@ bool ChQueryWorker::query21(yield_func_t &yield) {
   sort(result_vec.begin(), result_vec.end(), ResultRow::Compare);
 #endif
 
+  print_timer(ctxs);
   if (!q_verbose_) return true;
 
   printf("Result of query 21:\n");
@@ -154,6 +159,7 @@ bool ChQueryWorker::query21(yield_func_t &yield) {
 namespace {
 
 void query(void *arg) {
+  declare_timer(timer);  // total join
   Ctx &ctx = *(Ctx *) arg;
   uint64_t cnt = 0;
 
@@ -166,22 +172,35 @@ void query(void *arg) {
     int32_t o_d_id = orderKeyToDistrict(o_key);
     int32_t o_o_id = orderKeyToOrder(o_key);
 
-    int8_t o_ol_cnt = o_ol_cnts[o_i];
     uint32_t o_entry_d = o_entry_ds[o_i];
+
+    int8_t o_ol_cnt = o_ol_cnts[o_i];
+    vector<uint32_t> o_ol_delivery_ds(o_ol_cnt);
+    vector<int32_t> o_ol_i_ids(o_ol_cnt);
 
     uint64_t start_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, 1);
     uint64_t end_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, o_ol_cnt);
     assert(o_ol_cnt > 0);
 
-    vector<uint32_t> o_ol_delivery_ds(o_ol_cnt);
-    vector<int32_t> o_ol_i_ids(o_ol_cnt);
-    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) {
+    uint64_t *o_edge = ctx.db.getEdge(ORDE, o_i);  // graph (no effect)
+    // for (uint64_t ol_key = start_ol_key, int i = 0; ol_key <= end_ol_key; ++ol_key, ++i) 
+    timer_start(timer);
+    for (int i = 0; i < o_ol_cnt; ++i) 
+    {
+      uint64_t ol_key = start_ol_key + i;
+#if OL_GRAPH == 0
       uint64_t ol_i = ctx.db.getOffset(ORLI, ol_key, ctx.ver);
+#else  // graph
+      uint64_t ol_i = o_edge[i + 1];  // graph
+#endif
       if (ol_i == -1) {
         end = true;
         break;
       }
 
+#if Q21_STAT_JOIN
+      continue;
+#endif
       uint32_t *ol_delivery_d = 
         (uint32_t *) ol_tbl->getByOffset(ol_i, OL_DELIVERY_D, ctx.ver);
 
@@ -190,9 +209,12 @@ void query(void *arg) {
         break;
       }
 
-      o_ol_delivery_ds[ol_key - start_ol_key] = *ol_delivery_d;
-      o_ol_i_ids[ol_key- start_ol_key] = ol_i_ids[ol_i];
+      // o_ol_delivery_ds[ol_key - start_ol_key] = *ol_delivery_d;
+      // o_ol_i_ids[ol_key- start_ol_key] = ol_i_ids[ol_i];
+      o_ol_delivery_ds[i] = *ol_delivery_d;
+      o_ol_i_ids[i] = ol_i_ids[ol_i];
     }
+    timer_end(timer, ctx, 0);
 
     for (int8_t i = 0; i < o_ol_cnt; ++i) {
       uint32_t ol1_delivery_d = o_ol_delivery_ds[i];

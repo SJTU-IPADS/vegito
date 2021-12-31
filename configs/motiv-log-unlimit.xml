@@ -30,22 +30,22 @@
   <servers>
     <num> 16 </num>
     <mapping>
-      <a> val00 </a>
-      <a> val01 </a>
-      <a> val02 </a>
-      <a> val03 </a>
-      <a> val04 </a>
-      <a> val05 </a>
-      <a> val06 </a>
-      <a> val07 </a>
-      <a> val08 </a>
-      <a> val09 </a>
-      <a> val10 </a>
-      <a> val11 </a>
-      <a> val12 </a>
-      <a> val13 </a>
-      <a> val14 </a>
-      <a> val15 </a>
+      <a> hostname00 </a>
+      <a> hostname01 </a>
+      <a> hostname02 </a>
+      <a> hostname03 </a>
+      <a> hostname04 </a>
+      <a> hostname05 </a>
+      <a> hostname06 </a>
+      <a> hostname07 </a>
+      <a> hostname08 </a>
+      <a> hostname09 </a>
+      <a> hostname10 </a>
+      <a> hostname11 </a>
+      <a> hostname12 </a>
+      <a> hostname13 </a>
+      <a> hostname14 </a>
+      <a> hostname15 </a>
     </mapping>
   </servers>
 

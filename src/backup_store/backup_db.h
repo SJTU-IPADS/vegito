@@ -91,6 +91,12 @@ class BackupDB {
   inline bool isAP() const { return is_ap_; }
   void AddSchema(int tableid, Schema schema);
 
+  // graph
+  void AddEdge(int tableid);
+  inline uint64_t *getEdge(int tableid, uint64_t row_id) const { 
+    return stores_[tableid]->getEdge(row_id);
+  }
+
   char *Get(int tableid, uint64_t key, int columnID, uint64_t version, uint64_t *walk_cnt = nullptr) const;
   char *GetByOffset(int tableid, uint64_t offset, int columnID, uint64_t version) const;
 
@@ -101,7 +107,8 @@ class BackupDB {
     }
   }
 
-  void Insert(int tableid, uint64_t key, char *value, uint64_t ver = 0) const;
+  // return row offsert
+  uint64_t Insert(int tableid, uint64_t key, char *value, uint64_t ver = 0) const;
   void Update(int tableid, uint64_t key, char *value, 
               const std::vector<int> &cols, 
               int64_t seq, uint64_t version) const;

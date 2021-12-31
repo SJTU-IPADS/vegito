@@ -48,6 +48,8 @@ namespace nocc {
 namespace oltp {
 namespace ch {
 
+uint64_t TimeScale, TimeScale2;
+
 int start_w_id;
 vector<WorkerBitMap> wid2tid;  // (w_id - start_w_id) -> ChWorker id
 
@@ -71,6 +73,18 @@ void ChTest(int argc, char **argv) {
   chConfig.parse_ch_args(argc, argv);
   chConfig.parse_ch_xml(config.getConfigFile());
   chConfig.printConfig();
+
+  // prepare for memory parameters
+  const uint64_t MAX_THPT_NO_MAC = 1 * 1000 * 1000;
+  // #define MAX_THPT_NO_MAC (1.4 / 3 * 0.5 * 1000 * 1000)
+  const uint64_t MIN_SEC = 20;
+  if (config.getRunSec() < MIN_SEC || config.getNumTxnThreads() == 0)
+    TimeScale = 20 * MAX_THPT_NO_MAC;
+  else 
+    TimeScale = config.getRunSec() * MAX_THPT_NO_MAC;
+  TimeScale2 = TimeScale / (config.getScaleFactorPerPartition() * NumDistrictsPerWarehouse());
+
+  // run main routine
   ChRunner().run();
   /* End CH bootstrap function */
 }
@@ -151,12 +165,47 @@ uint64_t orli_hash_fn(uint64_t olid) {
   uint64_t num = (olid - 1) % 15;
   uint64_t oid = (olid - 1) / 15;
   uint64_t o = (oid - 1) % 10000000;
-  assert(o < TimeScale2);
+  if (o >= TimeScale2) {
+    printf("No enough orderline memory of ol_key %lu, max order %lu\n", 
+           olid, TimeScale2);
+    assert(false);
+  }
 
   uint64_t did = (oid - 1) / 10000000;
   uint64_t w = (did / 10 - 1) % config.getScaleFactorPerPartition();
   uint64_t d = (did - 1) % NumDistrictsPerWarehouse();
   return ((w * 10 + d) * TimeScale2 + o) * 15 + num;
+
+}
+
+uint64_t static_orde_hash_fn(uint64_t oid) {
+  uint64_t did = oid >> 32;
+  uint64_t w = (did / 10 - 1) % config.getScaleFactorPerPartition();
+  uint64_t d = (did - 1) % NumDistrictsPerWarehouse();
+  uint64_t o = (oid << 32 >> 32) - 1;
+  const int order_per_dist = 3000;
+  if (o >= order_per_dist) {
+    printf("No enough order memory!\n");
+    assert(false);
+  }
+  return (w * 10 + d) * order_per_dist + o;
+}
+
+uint64_t static_orli_hash_fn(uint64_t olid) {
+  uint64_t num = (olid - 1) % 15;
+  uint64_t oid = (olid - 1) / 15;
+  uint64_t o = (oid - 1) % 10000000;
+  const int order_per_dist = 3000;
+  if (o >= order_per_dist) {
+    printf("No enough orderline memory of ol_key %lu, max order 3000 \n", 
+           olid);
+    assert(false);
+  }
+
+  uint64_t did = (oid - 1) / 10000000;
+  uint64_t w = (did / 10 - 1) % config.getScaleFactorPerPartition();
+  uint64_t d = (did - 1) % NumDistrictsPerWarehouse();
+  return ((w * 10 + d) * order_per_dist + o) * 15 + num;
 
 }
 
@@ -290,6 +339,7 @@ void ChRunner::init_backup_store(BackupDB &store) {
     schema.index_type = BINDEX_HASH;
 
     store.AddSchema(NEWO, schema);
+    // store.AddEdge(NEWO);  // NEWO graph
   }
 
   // 5 order
@@ -318,6 +368,7 @@ void ChRunner::init_backup_store(BackupDB &store) {
     schema.index_type = BINDEX_HASH;
 
     store.AddSchema(ORDE, schema);
+    store.AddEdge(ORDE);
   }
 
   // 6 order-line
@@ -468,6 +519,7 @@ vector<BenchLoader *>
 ChRunner::make_backup_loaders(int partition, BackupDB* store) {
   assert(store != nullptr);
   vector<BenchLoader *> ret;
+#if INDEX_BUILD_EVAL == 0
   ret.push_back(new ChWarehouseLoader(9324,partition, store));
   ret.push_back(new ChItemLoader(235443,partition,store));
   ret.push_back(new ChStockLoader(89785943,partition,store));
@@ -477,7 +529,10 @@ ChRunner::make_backup_loaders(int partition, BackupDB* store) {
   ret.push_back(new ChSupplierLoader(138250201,partition,store));
   ret.push_back(new ChNationLoader(138250201,partition,store));
   ret.push_back(new ChRegionLoader(138250201,partition,store));
-
+#else
+  ret.push_back(new ChOrderLoader(2343352,partition,store));
+  ret.push_back(new ChIndexLoader(2343352,partition,store));
+#endif
   return ret;
 }
 

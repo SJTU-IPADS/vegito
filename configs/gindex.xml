@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <bench>
   <logger> 1 </logger>
-  <rep_tp_factor> 1 </rep_tp_factor>
+  <rep_tp_factor> 0 </rep_tp_factor>
   <rep_ap_factor> 1 </rep_ap_factor>
   <epoch_type> 4 </epoch_type>
-  <backup_threads> 0 </backup_threads>
+  <backup_threads> 4 </backup_threads>
   <query_threads> 20 </query_threads>
   <query_session> 20 </query_session>
   <query_verbose> 0 </query_verbose>
@@ -21,38 +21,26 @@
 
   <!-- only modify here -->
   <client> 0  </client>
-  <on_fly> 8 </on_fly>
+  <on_fly> 100 </on_fly>
   <send_rate> 1 </send_rate>
 
   <q_client> 0 </q_client>
-  <q_on_fly> 1 </q_on_fly>
+  <q_on_fly> 14 </q_on_fly>
   <q_send_rate> 1 </q_send_rate>
   <!-- only modify here -->
 
-  <run_sec> 30 </run_sec>
+  <run_sec> 20 </run_sec>
   <txn_end_sec> 100 </txn_end_sec>
   <q_start_sec> 0 </q_start_sec>
-  <q_round> 10 </q_round>
+  <q_round> 3 </q_round>
 
   <servers>
-    <num> 16 </num>
+    <num> 4 </num>
     <mapping>
       <a> hostname00 </a>
       <a> hostname01 </a>
       <a> hostname02 </a>
       <a> hostname03 </a>
-      <a> hostname04 </a>
-      <a> hostname05 </a>
-      <a> hostname06 </a>
-      <a> hostname07 </a>
-      <a> hostname08 </a>
-      <a> hostname09 </a>
-      <a> hostname10 </a>
-      <a> hostname11 </a>
-      <a> hostname12 </a>
-      <a> hostname13 </a>
-      <a> hostname14 </a>
-      <a> hostname15 </a>
     </mapping>
   </servers>
 

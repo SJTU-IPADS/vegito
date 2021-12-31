@@ -462,6 +462,19 @@ class ChOrderLoader : public BenchLoader, public ChMixin {
   virtual void loadBackup();
 };
 
+// only used for index build test
+class ChIndexLoader : public BenchLoader, public ChMixin {
+ public:
+  ChIndexLoader(unsigned long seed, int partition, BackupDB *store)
+      : BenchLoader(seed, store) {
+    partition_ = partition;    
+  }
+
+ protected:
+  virtual void load() { assert(false); }
+  virtual void loadBackup();
+};
+
 class ChItemLoader : public BenchLoader, public ChMixin {
  public:
   ChItemLoader(unsigned long seed, int partition, MemDB *store)

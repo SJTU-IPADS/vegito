@@ -103,8 +103,16 @@ void Runner::load_backup_partitions_(int mac_id) {
       make_backup_loaders(p_id, backup_stores_[i]);
 
     timer.start();
+#if INDEX_BUILD_EVAL == 0
+    // parallel
     for (BenchLoader *loader : loaders) loader->start();
     for (BenchLoader *loader : loaders) loader->join();
+#else
+    for (BenchLoader *loader : loaders) {
+      loader->start();
+      loader->join();
+    }
+#endif
     backup_stores_[i]->UpdateOffset();
     float time_ms = timer.get_diff_ms();
     uint64_t mem_after = get_system_memory_info().first;

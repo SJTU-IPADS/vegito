@@ -37,6 +37,9 @@
 #include "framework/bench_query.h"
 #include "framework/framework.h"
 
+#define OL_GRAPH 0
+#define STAT_JOIN 0
+
 namespace nocc {
 namespace oltp {
 
@@ -167,11 +170,12 @@ class ChQueryWorker : public ChMixin, public QueryWorker {
   DECLARE_QUERY(22);
 
   // mirco benchmark
-  DECLARE_MICRO(23, col_static);  // static column
-  DECLARE_MICRO(24, col_update);  // dynamic column: update w/o insert
-  DECLARE_MICRO(25, col_update2);  // dynamic column: update w/o insert
-  DECLARE_MICRO(26, freshness);    // freshness
-  DECLARE_MICRO(27, index);    // point query on index
+  DECLARE_MICRO(23, col_static);    // static column
+  DECLARE_MICRO(24, col_update);    // dynamic column: update w/o insert
+  DECLARE_MICRO(25, col_update2);   // dynamic column: update w/o insert
+  DECLARE_MICRO(26, freshness);     // freshness
+  DECLARE_MICRO(27, index);         // point query on index
+  DECLARE_MICRO(28, graph);         // join with graph
 
  private:
   const uint32_t start_w_;

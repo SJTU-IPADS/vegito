@@ -30,6 +30,10 @@
 using namespace std;
 using namespace nocc::oltp::ch;
 
+#define Q4_STAT_JOIN (STAT_JOIN == 4)
+#define TIMER Q4_STAT_JOIN
+#include "ch_query_timer.h"
+
 namespace {
 
 const int NUM_ORLI = 15;
@@ -91,7 +95,8 @@ bool ChQueryWorker::query04(yield_func_t &yield) {
 
   /**************** Parallel Part End ********************/
 
- if (!q_verbose_) return true;
+  print_timer(ctxs);
+  if (!q_verbose_) return true;
 
   uint64_t res_cnt = 0;
 
@@ -118,36 +123,75 @@ namespace {
 void query(void *arg) {
   Ctx &ctx = * (Ctx *) arg;
   uint64_t cnt = 0;
+  declare_timer(timer);
 
   Keys o_keys = o_tbl->getKeyCol();
 
+#if 1
   for (uint64_t o_i = ctx.off_begin; o_i < ctx.off_end; ++o_i) {
     int64_t o_key = (int64_t) o_keys[o_i];
     int32_t o_w_id = orderKeyToWare(o_key);
     int32_t o_d_id = orderKeyToDistrict(o_key);
     int32_t o_o_id = orderKeyToOrder(o_key);
 
-    if (o_entry_ds[o_i] > 0) {
-      int8_t o_ol_cnt = o_ol_cnts[o_i];
+    // 0: hash table
+    // 1: graph
+#if OL_GRAPH == 0
+    const int M = 0;
+#else
+    const int M = 1;
+#endif
+    if (o_entry_ds[o_i] > 0)
+    {
       uint32_t o_entry_d = o_entry_ds[o_i];
 
-      uint64_t ol_key_begin = 
-        (uint64_t) makeOrderLineKey(o_w_id, o_d_id, o_o_id, 1);
-      uint64_t ol_key_end = 
-        (uint64_t) makeOrderLineKey(o_w_id, o_d_id, o_o_id, o_ol_cnt);
-      assert(o_ol_cnt > 0);
+      if (M == 0) {
+        int8_t o_ol_cnt = o_ol_cnts[o_i];
 
-      for (uint64_t ol_key = ol_key_begin; ol_key <= ol_key_end; ++ol_key) {
-        uint32_t *ol_delivery_d = (uint32_t *) ctx.db.Get(ORLI, ol_key, OL_DELIVERY_D, ctx.ver, &ctx.walk_cnt);
-        if (ol_delivery_d == nullptr) continue;
+        uint64_t ol_key_begin = 
+          (uint64_t) makeOrderLineKey(o_w_id, o_d_id, o_o_id, 1);
+        uint64_t ol_key_end = 
+          (uint64_t) makeOrderLineKey(o_w_id, o_d_id, o_o_id, o_ol_cnt);
+        assert(o_ol_cnt > 0);
 
-        if (*ol_delivery_d >= o_entry_d) {
-          ctx.sub_result[o_ol_cnt - 1]++;
-          cnt++; // access orderline record(including both valid and invalid record)
+        timer_start(timer);
+        for (uint64_t ol_key = ol_key_begin; ol_key <= ol_key_end; ++ol_key) {
+          // uint32_t *ol_delivery_d = (uint32_t *) ctx.db.Get(ORLI, ol_key, OL_DELIVERY_D, ctx.ver, &ctx.walk_cnt);
+          uint64_t ol_i = ctx.db.getOffset(ORLI, ol_key, ctx.ver);
+#if !Q4_STAT_JOIN
+          uint32_t *ol_delivery_d = (uint32_t *) ctx.db.GetByOffset(ORLI, ol_i, OL_DELIVERY_D, ctx.ver);
+          if (ol_delivery_d == nullptr) continue;
+
+          if (*ol_delivery_d >= o_entry_d) {
+            ctx.sub_result[o_ol_cnt - 1]++;
+            cnt++; // access orderline record(including both valid and invalid record)
+          }
+#endif
         }
+        timer_end(timer, ctx, 0);
+      } else if (M == 1) {
+        uint64_t *o_edge = ctx.db.getEdge(ORDE, o_i);
+        int8_t o_ol_cnt = o_edge[0];
+        timer_start(timer);
+        for (int i = 1; i <= o_ol_cnt; ++i) {
+          uint64_t ol_i = o_edge[i];
+#if !Q4_STAT_JOIN
+          uint32_t *ol_delivery_d = (uint32_t *) ctx.db.GetByOffset(ORLI, ol_i, OL_DELIVERY_D, ctx.ver); 
+          if (ol_delivery_d == nullptr) continue;
+
+          if (*ol_delivery_d >= o_entry_d) {
+            ctx.sub_result[o_ol_cnt - 1]++;
+            cnt++; // access orderline record(including both valid and invalid record)
+          }
+#endif
+        } 
+        timer_end(timer, ctx, 0);
+      } else {
+        assert(false);
       }
     }
   }
+#endif
   ctx.cnt = cnt;
 }
 

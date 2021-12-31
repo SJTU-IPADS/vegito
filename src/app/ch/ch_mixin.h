@@ -42,15 +42,11 @@ using namespace std;
 
 #define MASK_UPPER ( (0xffffffffLL) << 32)
 
-// max throughput of NO in a single machine
-#define MAX_THPT_NO_MAC (1 * 1000 * 1000)
-// #define MAX_THPT_NO_MAC (1.4 / 3 * 0.5 * 1000 * 1000)
-#define TimeScale (((config.getRunSec() < 20)? 20 : config.getRunSec()) * MAX_THPT_NO_MAC)
-#define TimeScale2 (TimeScale / (config.getScaleFactorPerPartition() * NumDistrictsPerWarehouse()))
-
 namespace nocc {
 namespace oltp {
 namespace ch {
+
+extern uint64_t TimeScale, TimeScale2;
 
 /* TPCC constants */
 constexpr inline ALWAYS_INLINE size_t NumItems() {  return 100000; }

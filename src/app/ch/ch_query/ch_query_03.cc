@@ -29,8 +29,8 @@
 using namespace std;
 using namespace nocc::oltp::ch;
 
-#define TIMER 0
-
+#define Q3_STAT_JOIN (STAT_JOIN == 3)
+#define TIMER Q3_STAT_JOIN
 #include "ch_query_timer.h"
 
 #define Q3_STABLE_SORT 0
@@ -99,9 +99,8 @@ bool ChQueryWorker::query03(yield_func_t &yield) {
   // Result data
   vector<ResultRow> result_table;
   
-  declare_timer(timer);
-  declare_timer(gtimer);
-  timer_start(gtimer);
+  // declare_timer(gtimer);
+  // timer_start(gtimer);
 
   Vec m_c_keys;
   Keys c_keys = c_tbl->getKeyCol();
@@ -132,14 +131,14 @@ bool ChQueryWorker::query03(yield_func_t &yield) {
     ctxs.emplace_back(*db_, ver, off_begin, off_end, m_c_keys);
   }
   
-  timer_start(timer);
+  // timer_start(timer);
   parallel_process(ctxs, query);
-  timer_end_print(timer, "Parallel");
+  // timer_end_print(timer, "Parallel");
   
   /**************** Parallel Part End ********************/
 
   // Collect data from all slave threads
-  timer_start(timer);
+  // timer_start(timer);
   int cnt = 0;
   for (Ctx &ctx : ctxs) {
     result_table.insert(result_table.end(), 
@@ -154,8 +153,8 @@ bool ChQueryWorker::query03(yield_func_t &yield) {
   sort(result_table.begin(), result_table.end(), ResultRow::Compare);
 #endif
   
-  timer_end_print(timer, "After parallel");
-  timer_end_print(gtimer, "Total");
+  // timer_end_print(timer, "After parallel");
+  // timer_end_print(gtimer, "Total");
   
   print_timer(ctxs); 
   // print_each_timer(ctxs); 
@@ -179,6 +178,7 @@ bool ChQueryWorker::query03(yield_func_t &yield) {
 
 namespace {
 void query(void *arg) {
+  declare_timer(timer);
   uint64_t cnt = 0;
 
   // timer_start(gtimer);
@@ -195,15 +195,12 @@ void query(void *arg) {
   const uint64_t *ol_keys = &ol_keys_vec[0];
 
   asm volatile("" ::: "memory");
-
-  // printf("begin %lu, end %lu\n", no_begin, no_end);
   // timer_end(gtimer, ctx, 0);
 
   // timer_start(gtimer);
   for (uint64_t no_i = no_begin; no_i < no_end; ++no_i) {
     // timer_start(timer);
    
-    // cnt += no_keys[no_i];
     uint64_t no_key = no_keys[no_i];
     // timer_end(timer, ctx, 1);
 
@@ -211,29 +208,24 @@ void query(void *arg) {
     assert(no_key != uint64_t(-1));
 
     uint64_t o_i = db.getOffset(ORDE, no_key);
+
+    // NEWO graph
+    // uint64_t *no_edge = db.getEdge(NEWO, no_i);
+    // uint64_t o_i = no_edge[1];  // for graph
     assert(o_i != -1);
 
     if (o_entry_ds[o_i] <= 0) continue;
 
-    // cnt += no_key;
-
-#if 1
     int32_t o_c_id = o_c_ids[o_i];
     int32_t no_w_id = orderKeyToWare(no_key);
     int32_t no_d_id = orderKeyToDistrict(no_key);
     int32_t no_o_id = orderKeyToOrder(no_key);
     uint64_t c_key = makeCustomerKey(no_w_id, no_d_id, o_c_id);
 
-    // uint64_t c_i = db.getOffset(CUST, c_key);
-    // if (c_states[c_i].data()[0] == CONST_C_STATE_TEMPLATE) 
-#if 1
-    // bool find = binary_search(ctx.m_c_keys.begin(), ctx.m_c_keys.end(), c_key);
     int64_t off = key_binary_search(ctx.m_c_keys, c_key);
     bool find = (off != -1);
     if (!find) continue;
-#endif
 
-#if 1
     {
       uint64_t start_ol_key = 
         (uint64_t) makeOrderLineKey(no_w_id, no_d_id, no_o_id, 1);
@@ -242,7 +234,12 @@ void query(void *arg) {
       assert(o_ol_cnts[o_i] > 0);
 
       AMOUNT revenue = 0;
+#if OL_GRAPH == 0
       const int M = 1;
+#else
+      const int M = 2;
+#endif
+      timer_start(timer);
       if (M == 0) {
         // B+Tree index
         auto ol_sec_idx = db.getSecIndex(ORLI)->getIterator(ctx.ver);
@@ -258,20 +255,32 @@ void query(void *arg) {
         // fake hash index (know the range)
         for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ol_key++) {
           uint64_t ol_i = db.getOffset(ORLI, ol_key);
+#if !Q3_STAT_JOIN
           revenue += ol_amounts[ol_i];
           ++cnt;
+#endif
         }
+      } else if (M == 2) {
+        // graph
+        uint64_t *o_edge = db.getEdge(ORDE, o_i);
+        // for (int i = 1; i <= o_edge[0]; ++i) 
+        for (int i = o_edge[0] - 1; i >= 0; --i)  // for cache locality 
+        {
+          uint64_t ol_i = o_edge[i];
+#if !Q3_STAT_JOIN
+          revenue += ol_amounts[ol_i];
+          ++cnt;
+#endif
+        }
+      
       } else {
         assert(false);
       }
+      timer_end(timer, ctx, 0);
 
       ctx.sub_result.emplace_back(no_o_id, no_w_id, no_d_id, 
                                   revenue, o_entry_ds[o_i]);
     }
-#endif
-
-#endif
-
     // timer_end(timer, ctx, 2);
   }
   // timer_end(gtimer, ctx, 1);

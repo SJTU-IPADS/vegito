@@ -30,6 +30,10 @@
 using namespace std;
 using namespace nocc::oltp::ch;
 
+#define Q10_STAT_JOIN (STAT_JOIN == 10)
+#define TIMER Q10_STAT_JOIN
+#include "ch_query_timer.h"
+
 namespace {
 
 const char *I_DATA_STR = "BB";
@@ -152,6 +156,7 @@ bool ChQueryWorker::query10(yield_func_t &yield) {
 
   // stable_sort(result_vec.begin(), result_vec.end(), ResultRow::Compare);
   
+  print_timer(ctxs);
   if (!q_verbose_) return true;
 
   printf("Result of query 10:\n");
@@ -170,6 +175,7 @@ bool ChQueryWorker::query10(yield_func_t &yield) {
 namespace {
 
 void query(void *arg) {
+  declare_timer(timer);  // total join
   Ctx &ctx = *(Ctx *) arg;
   uint64_t cnt = 0;
 
@@ -189,7 +195,6 @@ void query(void *arg) {
     if (o_entry_d == 0) continue;
 
     int32_t o_c_id = o_c_ids[o_i];
-    int8_t o_ol_cnt = o_ol_cnts[o_i];
     uint64_t c_key = makeCustomerKey(o_w_id, o_d_id, o_c_id);
     
     uint64_t c_i = ctx.db.getOffset(CUST, c_key);
@@ -204,17 +209,33 @@ void query(void *arg) {
     auto n_name = (inline_str_8<15> *) ctx.db.Get(NATI, n_key, N_NAME, ctx.ver);
     assert(n_name);
 
+    timer_start(timer);
+#if OL_GRAPH == 0
+    int8_t o_ol_cnt = o_ol_cnts[o_i];
     uint64_t start_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, 1);
     uint64_t end_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, o_ol_cnt);
     assert(o_ol_cnt > 0);
 
     // Nested-loop
-    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) {
+    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) 
+#else  // graph
+    uint64_t *o_edge = ctx.db.getEdge(ORDE, o_i);
+    int8_t o_ol_cnt = o_edge[0];
+    for (int i = 1; i <= o_ol_cnt; ++i)
+#endif
+    {
+#if OL_GRAPH == 0
       uint64_t ol_i = ctx.db.getOffset(ORLI, ol_key, ctx.ver);
+#else  // graph
+      uint64_t ol_i = o_edge[i];  // graph
+#endif
       if (ol_i == -1) {
         end = true;
         break;
       }
+#if Q10_STAT_JOIN
+      continue;
+#endif
       uint32_t *ol_delivery_d = 
         (uint32_t *) ol_tbl->getByOffset(ol_i, OL_DELIVERY_D, ctx.ver);
       if (ol_delivery_d == nullptr) {
@@ -242,6 +263,7 @@ void query(void *arg) {
       }
       cnt++; // access orderline record
     }
+    timer_end(timer, ctx, 0);
   }
   ctx.cnt = cnt;
 }
