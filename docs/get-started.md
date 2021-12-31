@@ -206,7 +206,7 @@ In each evaluation, we will run each data point for 20 seconds, and you only nee
 - Usage: `./scripts/run-fresh.py <template-xml> <epoch-interval-ms>`. It means use a template XML and set the epoch interval as ms. It will create two logs: `freshness-<epoch-interval-ms>-raw.log` and `freshness-<epoch-interval-ms>.log` (`grep` the freshness information from the raw log). And give you the results of freshness directly.
 - We provide `./scripts/fresh-eval.py` to parse the logs `freshness-*.log` (**not the raw logs**).
 
-### Static Graph index
+### Static Graph index: LinkJoin
 - Now support static graph index on ORDERS->ORDERLINE
 - Set the macro `OL_GRAPH 1` in `src/app/ch/ch_query.h`
 - Modify the xml config file (sample in `configs/gindex.xml`)
