@@ -99,6 +99,7 @@ static void handler(int sig);
 #endif
 
 /* Interface */
+#ifdef USE_SSMALLOC
 void *malloc(size_t size);
 void free(void* ptr);
 void *realloc(void *ptr, size_t size);
@@ -107,6 +108,7 @@ void *memalign(size_t boundary, size_t size);
 int posix_memalign(void **memptr, size_t alignment, size_t size);
 void *valloc(size_t size);
 void *pvalloc(size_t size);
+#endif
 
 #ifdef RETURN_MEMORY
 pthread_t gpool_gc_thread;
@@ -265,6 +267,11 @@ uint64_t RInit(char *buffer,uint64_t size) {
 }
 
 void RThreadLocalInit () {
+
+#ifndef USE_SSMALLOC  // XXX: for compatibility
+  /* Initialize the allocator */
+  check_init();
+#endif
   
   if(unlikely(r_thread_state != READY)) {
     pthread_setspecific(r_destructor, ACTIVE);
@@ -928,6 +935,7 @@ inline static int r_size2cls(size_t size) {
   return ret;  
 }
 
+#ifdef USE_SSMALLOC
 void *malloc(size_t size)
 {
     void *ret = NULL;
@@ -956,10 +964,11 @@ void *malloc(size_t size)
       assert(0);
     return ret;
 }
+#endif
 
 void *Rmalloc(size_t size) {
   void *ret = NULL;
-  
+ 
   /* Deal with zero-size allocation */
   size += (size == 0);
   
@@ -972,7 +981,7 @@ void *Rmalloc(size_t size) {
   return ret;  
 }
 
-
+#ifdef USE_SSMALLOC
 void free(void *ptr)
 {
     if(ptr == NULL) {
@@ -993,6 +1002,7 @@ void free(void *ptr)
         large_free(ptr);
     }
 }
+#endif
 
 void Rfree(void *ptr) {
   
@@ -1016,7 +1026,7 @@ void Rfree(void *ptr) {
   }
 }
 
-
+#ifdef USE_SSMALLOC
 void *realloc(void* ptr, size_t size)
 {
     /* Handle special cases */
@@ -1125,3 +1135,4 @@ void *pvalloc(size_t size)
     fprintf(stderr, "pvalloc() called. Not implemented! Exiting.\n");
     exit(1);
 }
+#endif

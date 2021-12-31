@@ -13,11 +13,13 @@
 #include <execinfo.h>
 #include <signal.h>
 
-#include "atomic.h"
-#include "bitops.h"
-#include "queue.h"
-#include "double-list.h"
-#include "cpu.h"
+#include "include-x86_64/atomic.h"
+#include "include-x86_64/bitops.h"
+#include "include-x86_64/queue.h"
+#include "include-x86_64/double-list.h"
+#include "include-x86_64/cpu.h"
+
+#define USE_SSMALLOC
 
 /* Configurations */
 #define CHUNK_DATA_SIZE     (16*PAGE_SIZE)
@@ -183,6 +185,13 @@ void  RThreadLocalInit(void);
 void *Rmalloc(size_t __size);
 void  Rfree(void *__ptr);
 
+#ifdef USE_SSMALLOC
 void *malloc(size_t __size);
 void *realloc(void *__ptr, size_t __size);
 void free(void *__ptr);
+void *calloc(size_t __nmemb, size_t __size);
+void *memalign(size_t __boundary, size_t __size);
+int posix_memalign(void **__memptr, size_t __alignment, size_t __size);
+void *valloc(size_t __size);
+void *pvalloc(size_t __size);
+#endif
