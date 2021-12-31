@@ -158,6 +158,11 @@ void BackupDB::AddSchema(int tableid, Schema schema) {
   
 }
 
+void BackupDB::AddEdge(int tableid) {
+  assert(tableid < stores_.size() && stores_[tableid]);
+  stores_[tableid]->addEdge();
+}
+
 #if 0
 BackupIndex::Iterator *BackupDB::getSecIter(int tid, int cid) const {
   BackupIndex *sec_index = sec_indices_[tid][cid];
@@ -166,7 +171,7 @@ BackupIndex::Iterator *BackupDB::getSecIter(int tid, int cid) const {
 }
 #endif
 
-void BackupDB::Insert(int tableid, uint64_t key, char *value, uint64_t ver) const {
+uint64_t BackupDB::Insert(int tableid, uint64_t key, char *value, uint64_t ver) const {
   // prepare store and index
   BackupStore *store = stores_[tableid];
   BackupIndex *index = indices_[tableid];
@@ -240,7 +245,8 @@ void BackupDB::Insert(int tableid, uint64_t key, char *value, uint64_t ver) cons
       } 
     }
   }
- 
+
+ return offset; 
 }
 
 void BackupDB::Update(int tableid, uint64_t key, char *value, 

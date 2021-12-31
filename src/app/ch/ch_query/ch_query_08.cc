@@ -30,8 +30,8 @@
 using namespace std;
 using namespace nocc::oltp::ch;
 
-#define TIMER 0
-
+#define Q8_STAT_JOIN (STAT_JOIN == 8)
+#define TIMER Q8_STAT_JOIN
 #include "ch_query_timer.h"
 
 namespace {
@@ -67,9 +67,9 @@ namespace ch {
 bool ChQueryWorker::query08(yield_func_t &yield) {
   uint64_t ver = get_read_ver_();
   uint64_t cnt = 0;
-  declare_timer(timer);
+  // declare_timer(timer);
 
-  timer_start(timer);
+  // timer_start(timer);
 
   // Result data
   NatiSet n1_nationkeys;
@@ -117,16 +117,16 @@ bool ChQueryWorker::query08(yield_func_t &yield) {
     ctxs.emplace_back(*db_, ver, off_begin, off_end, n1_nationkeys, n2_nationkey);
   }
   
-  timer_end_print(timer, "Pre");
+  // timer_end_print(timer, "Pre");
 
-  timer_start(timer);
+  // timer_start(timer);
  
   parallel_process(ctxs, query);
-  timer_end_print(timer, "Parallel");
+  // timer_end_print(timer, "Parallel");
 
   /**************** Parallel Part End ********************/
 
-  timer_start(timer);
+  // timer_start(timer);
   // Collect data from all slave threads
   for (const Ctx &ctx : ctxs) {
     auto t_iter = ctx.sub_results.begin();
@@ -142,7 +142,7 @@ bool ChQueryWorker::query08(yield_func_t &yield) {
   }
  
   // sort in the map
-  timer_end_print(timer, "Post");
+  // timer_end_print(timer, "Post");
   print_timer(ctxs);
 
   if (!q_verbose_) return true;
@@ -166,6 +166,8 @@ bool ChQueryWorker::query08(yield_func_t &yield) {
 namespace {
 
 void query(void *arg) {
+  declare_timer(timer0);  // total join
+  declare_timer(timer1);  // acc join part
   Ctx &ctx = *(Ctx *) arg;
 
   uint64_t cnt = 0;
@@ -177,6 +179,7 @@ void query(void *arg) {
 
   // Nested-loop
   bool end = false;
+  timer_start(timer0);
   for (uint64_t o_i = o_begin; o_i < o_end && !end; ++o_i) {
     uint32_t o_entry_d = o_entry_ds[o_i];
     if (o_entry_d == 0) continue;
@@ -196,31 +199,42 @@ void query(void *arg) {
     uint64_t nation_key = (uint64_t) c_states[c_i].data()[0];
     if (ctx.n1_nationkeys.count(nation_key) == 0) continue;
 
-    int8_t o_ol_cnt = o_ol_cnts[o_i];
     uint32_t l_year = o_entry_ds[o_i] % 10;
+
+    timer_start(timer1);
+#if OL_GRAPH == 0
+    int8_t o_ol_cnt = o_ol_cnts[o_i];
     uint64_t start_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, 1);
     uint64_t end_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, o_ol_cnt);
     assert(o_ol_cnt >= 1 && o_ol_cnt <= 15);
 
-#if 1
     // Nested-loop
-    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) {
+    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) 
+#else  // graph
+    uint64_t *o_edge = ctx.db.getEdge(ORDE, o_i);
+    int8_t o_ol_cnt = o_edge[0];
+    for (int i = 1; i <= o_ol_cnt; ++i)
+#endif
+    {
+#if OL_GRAPH == 0
       uint64_t ol_i = ctx.db.getOffset(ORLI, ol_key, ctx.ver);
+#else  // graph
+      uint64_t ol_i = o_edge[i];  // graph
+#endif
       if (ol_i == -1) {
         end = true;
         break;
       }
+#if !Q8_STAT_JOIN
       int32_t ol_i_id = ol_i_ids[ol_i];
       int32_t ol_supply_w_id = ol_supply_w_ids[ol_i];
       AMOUNT ol_amount = ol_amounts[ol_i];
 
-#if 1
       auto i_data = 
         (inline_str_8<50> *) ctx.db.Get(ITEM, ol_i_id, I_DATA, ctx.ver);
 
       if (i_data->size() >= 1 &&
           i_data->str()[i_data->size() - 1] == CONST_I_DATA_CHAR_TEMPLATE) 
-#endif
       {
         uint64_t s_key = makeStockKey(ol_supply_w_id, ol_i_id);
         uint64_t s_i = ctx.db.getOffset(STOC, s_key);
@@ -238,10 +252,12 @@ void query(void *arg) {
           ++cnt;
         }
       }
+#endif
     }
-#endif 
+    timer_end(timer1, ctx, 1);
 
   }
+  timer_end(timer0, ctx, 0);
 
   ctx.cnt = cnt;
 }

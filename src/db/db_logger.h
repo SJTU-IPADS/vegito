@@ -150,7 +150,7 @@ class DBLogger {
   static void clean_log(int log_id, int p_id, char* log_ptr, char* tailer_ptr, 
                         uint64_t write_epoch);
 
-  static void set_log_cleaner(LogCleaner *log_cleaner){
+  static void set_log_cleaner(LogCleaner *log_cleaner) {
     assert(log_cleaner_ == NULL);
     log_cleaner_ = log_cleaner;
   }

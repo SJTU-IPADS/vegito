@@ -27,6 +27,8 @@
 #ifndef CUSTOM_CONFIG_H_
 #define CUSTOM_CONFIG_H_
 
+#define INDEX_BUILD_EVAL 0
+
 #define UPDATE_STAT 0
 
 // Buffer related config

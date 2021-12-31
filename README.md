@@ -8,6 +8,7 @@ VEGITO is a fast distributed in-memory HTAP system that retrofits fault-tolerant
 - Consistent and parallel log cleaning mechanism 
 - Locality-preserving multi-version column storage
 - Two-phase concurrent index updating mechanism
+- Support (static) graph index
 
 ## Features not supported yet
 

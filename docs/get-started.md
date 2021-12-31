@@ -20,8 +20,6 @@ The performance isolation depends on the isolation of NICs and sockets.
 
   - [Boost `1.61.0`](https://www.boost.org/doc/libs/1_61_0/more/getting_started/unix-variants.html) (Only tested.)
 
-  - [ssmalloc](https://www.boost.org/doc/libs/1_61_0/more/getting_started/unix-variants.html)
-
   - If you install these libraries locally (e.g., install in `~/local/`), please set the environment variables, like:
 
     ```
@@ -29,10 +27,6 @@ The performance isolation depends on the isolation of NICs and sockets.
     export CPATH="$boost_home/include:$CPATH"
     export LD_LIBRARY_PATH="$boost_home/lib:$LD_LIBRARY_PATH"
     export LIBRARY_PATH="$boost_home/lib:$LIBRARY_PATH"
-    
-    ssmalloc_home="$HOME/local/ssmalloc"
-    export LD_LIBRARY_PATH="$HOME/local/ssmalloc:$LD_LIBRARY_PATH"
-    export LIBRARY_PATH="$HOME/local/ssmalloc:$LIBRARY_PATH"
     ```
 
 - [MLNX_OFED driver](https://www.mellanox.com/products/infiniband-drivers/linux/mlnx_ofed)
@@ -211,3 +205,15 @@ In each evaluation, we will run each data point for 20 seconds, and you only nee
 
 - Usage: `./scripts/run-fresh.py <template-xml> <epoch-interval-ms>`. It means use a template XML and set the epoch interval as ms. It will create two logs: `freshness-<epoch-interval-ms>-raw.log` and `freshness-<epoch-interval-ms>.log` (`grep` the freshness information from the raw log). And give you the results of freshness directly.
 - We provide `./scripts/fresh-eval.py` to parse the logs `freshness-*.log` (**not the raw logs**).
+
+### Static Graph index
+- Now support static graph index on ORDERS->ORDERLINE
+- Set the macro `OL_GRAPH 1` in `src/app/ch/ch_query.h`
+- Modify the xml config file (sample in `configs/gindex.xml`)
+- Usage: 
+```
+$ mkdir build; cd build
+$ cmake ..; make -j
+$ cp ../configs/gindex.xml .
+$ ./run.sh 0 gindex.xml
+```

@@ -279,35 +279,83 @@ void query_0(void *arg) {
       (uint64_t) makeOrderLineKey(o_w_id, o_d_id, o_o_id, o_ol_cnts[o_i]);
     assert(o_ol_cnts[o_i] > 0);
 
+    // 0: hash tbale
+    // 1: graph
+    const int OL_M = 0;
+
     // Nested-loop
-    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) {
-      uint64_t ol_i = ctx.db.getOffset(ORLI, ol_key);
-      int32_t ol_i_id = ol_i_ids[ol_i];
-      uint64_t s_key = (uint64_t) makeStockKey(o_w_id, ol_i_id);
-      uint64_t s_i = ctx.db.getOffset(STOC, s_key);
-      assert(ctx.db.getOffset(STOC, s_key) != -1);
-
-      uint64_t su_suppkey = (o_w_id * ol_i_id) % 10000 + 1;
-      auto subuf_iter = ctx.su_buf.find(su_suppkey);
-      if (subuf_iter != ctx.su_buf.end()) {
-        uint64_t cust_nationkey = cbuf_iter->second;
-        uint64_t supp_nationkey = subuf_iter->second;
-        
-        if (cust_nationkey != supp_nationkey) continue;
-        auto nbuf_iter = ctx.n_buf.find(cust_nationkey);
-        if (nbuf_iter == ctx.n_buf.end()) continue;
-
-        auto res_iter = ctx.sub_results.find(nbuf_iter->second);
-        if (res_iter == ctx.sub_results.end()) {
-          AMOUNT revenue = ol_amounts[ol_i];
-          ctx.sub_results.emplace(nbuf_iter->second, revenue);
-          ++cnt;
-        } else {
-          res_iter->second += ol_amounts[ol_i];
-          ++cnt;
+    switch (OL_M) {
+    case 0:
+      for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) {
+        uint64_t ol_i = ctx.db.getOffset(ORLI, ol_key);
+        int32_t ol_i_id = ol_i_ids[ol_i];
+        uint64_t s_key = (uint64_t) makeStockKey(o_w_id, ol_i_id);
+        uint64_t s_i = ctx.db.getOffset(STOC, s_key);
+        assert(ctx.db.getOffset(STOC, s_key) != -1);
+  
+        uint64_t su_suppkey = (o_w_id * ol_i_id) % 10000 + 1;
+        auto subuf_iter = ctx.su_buf.find(su_suppkey);
+        if (subuf_iter != ctx.su_buf.end()) {
+          uint64_t cust_nationkey = cbuf_iter->second;
+          uint64_t supp_nationkey = subuf_iter->second;
+          
+          if (cust_nationkey != supp_nationkey) continue;
+          auto nbuf_iter = ctx.n_buf.find(cust_nationkey);
+          if (nbuf_iter == ctx.n_buf.end()) continue;
+  
+          auto res_iter = ctx.sub_results.find(nbuf_iter->second);
+          if (res_iter == ctx.sub_results.end()) {
+            AMOUNT revenue = ol_amounts[ol_i];
+            ctx.sub_results.emplace(nbuf_iter->second, revenue);
+            ++cnt;
+          } else {
+            res_iter->second += ol_amounts[ol_i];
+            ++cnt;
+          }
         }
       }
+      break;
+    case 1:
+    {
+      uint64_t *o_edge = ctx.db.getEdge(ORDE, o_i);
+      int8_t o_ol_cnt = o_edge[0];
+      assert(o_ol_cnts[o_i] == o_ol_cnt);
+      for (int i = 1; i <= o_ol_cnt; ++i) {
+        uint64_t ol_i = o_edge[i];
+        int32_t ol_i_id = ol_i_ids[ol_i];
+        uint64_t s_key = (uint64_t) makeStockKey(o_w_id, ol_i_id);
+        uint64_t s_i = ctx.db.getOffset(STOC, s_key);
+        assert(ctx.db.getOffset(STOC, s_key) != -1);
+  
+        uint64_t su_suppkey = (o_w_id * ol_i_id) % 10000 + 1;
+        auto subuf_iter = ctx.su_buf.find(su_suppkey);
+        if (subuf_iter != ctx.su_buf.end()) {
+          uint64_t cust_nationkey = cbuf_iter->second;
+          uint64_t supp_nationkey = subuf_iter->second;
+          
+          if (cust_nationkey != supp_nationkey) continue;
+          auto nbuf_iter = ctx.n_buf.find(cust_nationkey);
+          if (nbuf_iter == ctx.n_buf.end()) continue;
+  
+          auto res_iter = ctx.sub_results.find(nbuf_iter->second);
+          if (res_iter == ctx.sub_results.end()) {
+            AMOUNT revenue = ol_amounts[ol_i];
+            ctx.sub_results.emplace(nbuf_iter->second, revenue);
+            ++cnt;
+          } else {
+            res_iter->second += ol_amounts[ol_i];
+            ++cnt;
+          }
+        }
+      }
+      break;
     }
+    default:
+      assert(false);
+    }
+        
+    uint64_t *o_edge = ctx.db.getEdge(ORDE, o_i);
+        int8_t o_ol_cnt = o_edge[0];
   }
 
   ctx.cnt = cnt;

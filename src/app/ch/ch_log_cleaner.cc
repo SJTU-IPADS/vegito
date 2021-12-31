@@ -37,18 +37,24 @@
 using namespace std;
 using namespace nocc::framework;
 
+namespace {
+  // graph
+  thread_local uint64_t last_o_id;
+  thread_local uint64_t *last_o_edge;
+}
+
 namespace nocc {
 namespace oltp {
 namespace ch {
 
 ChLogCleaner::ChLogCleaner()
     : LogCleaner(true) {
-  for (uint w = 0; w < NumWarehouses(); ++w) {
-    for (uint d = 0; d < NumDistrictsPerWarehouse(); ++d) {
-      last_no_o_ids_[w][d] = 3000;
-        // 3000 is magic number, which is the init num of new order
-    }
-  }
+  // for (uint w = 0; w < NumWarehouses(); ++w) {
+  //   for (uint d = 0; d < NumDistrictsPerWarehouse(); ++d) {
+  //     // 3000 is magic number, which is the init num of new order
+  //     last_no_o_ids_[w][d] = 3000;
+  //   }
+  // }
 
   ware_tp_col_ = { W_YTD };
   dist_tn_col_ = { D_NEXT_O_ID };
@@ -96,8 +102,20 @@ int ChLogCleaner::clean_log(int log_id, int partition_id, int tx_id,
   if (op_bit == LOG_OP_I) {
     assert(seq == 2);
     // TODO: HIST is unused and w/o primary key
-    if (table_id != HIST) {
-      db->Insert(table_id, key, val, write_epoch);
+    if (table_id == HIST) return 0;
+
+    uint64_t row_id = db->Insert(table_id, key, val, write_epoch);
+
+    // OL_GRAPH
+    if (table_id == ORDE) {
+      last_o_id = key;
+      last_o_edge = db->getEdge(table_id, row_id);
+    }
+    if (table_id == ORLI) {
+      assert(last_o_id == orderLineKeyToOrderKey(key));
+      uint64_t &num = last_o_edge[0];
+      last_o_edge[num] = row_id;
+      ++num;
     }
     return 0;
   }

@@ -30,6 +30,10 @@
 using namespace std;
 using namespace nocc::oltp::ch;
 
+#define Q12_STAT_JOIN (STAT_JOIN == 12)
+#define TIMER Q12_STAT_JOIN
+#include "ch_query_timer.h"
+
 namespace {
 
 const int MAX_ORLI = 15;
@@ -91,6 +95,7 @@ bool ChQueryWorker::query12(yield_func_t &yield) {
     walk_cnt_ += ctx.walk_cnt;
   }
 
+  print_timer(ctxs);
   if (!q_verbose_) return true;
 
   printf("Result of query 12:\n");
@@ -111,6 +116,7 @@ bool ChQueryWorker::query12(yield_func_t &yield) {
 namespace {
 
 void query(void *arg) {
+  declare_timer(timer);  // total join
   Ctx &ctx = *(Ctx *) arg;
   uint64_t cnt = 0;
 
@@ -131,22 +137,37 @@ void query(void *arg) {
     int32_t o_d_id = orderKeyToDistrict(o_key);
     int32_t o_o_id = orderKeyToOrder(o_key);
 
-    int8_t o_ol_cnt = o_ol_cnts[o_i];
     uint32_t o_entry_d = o_entry_ds[o_i];
     int32_t *o_carrier_id = (int32_t *) o_carrier_id_cur->value();
     assert(o_carrier_id);
 
+    timer_start(timer);
+#if OL_GRAPH == 0
+    int8_t o_ol_cnt = o_ol_cnts[o_i];
     uint64_t start_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, 1);
     uint64_t end_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, o_ol_cnt);
     assert(o_ol_cnt > 0);
 
-    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) {
+    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) 
+#else  // graph
+    uint64_t *o_edge = ctx.db.getEdge(ORDE, o_i);
+    int8_t o_ol_cnt = o_edge[0];
+    for (int i = 1; i <= o_ol_cnt; ++i)
+#endif
+    {
+#if OL_GRAPH == 0
       uint64_t ol_i = ctx.db.getOffset(ORLI, ol_key, ctx.ver);
+#else  // graph
+      uint64_t ol_i = o_edge[i];  // graph
+#endif
       if (ol_i == -1) {
         end = true;
         break;
       }
 
+#if Q12_STAT_JOIN
+      continue;
+#endif
       uint32_t *ol_delivery_d = 
         (uint32_t *) ol_tbl->getByOffset(ol_i, OL_DELIVERY_D, ctx.ver, &ctx.walk_cnt);
       if (ol_delivery_d == nullptr) {
@@ -164,6 +185,7 @@ void query(void *arg) {
         ++cnt;
       }
     }
+    timer_end(timer, ctx, 0);
   }
 
   ctx.cnt = cnt;

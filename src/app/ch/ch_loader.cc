@@ -29,6 +29,9 @@
 #include "db/txs/dbtx.h"
 #include "db/txs/dbsi.h"
 
+#include "backup_store/backup_tree.h"
+#include "backup_store/backup_index_hash.h"
+
 #include <set>
 
 using namespace std;
@@ -685,7 +688,7 @@ void ChOrderLoader::loadBackup() {
         const size_t sz = sizeof(*v_oo);
         oorder_total_sz += sz;
         n_oorders++;
-        backup_store_->Insert(ORDE, okey, (char *) v_oo);
+        uint64_t o_i = backup_store_->Insert(ORDE, okey, (char *) v_oo);
 
 #if 0 // secondary index
         uint64_t sec = makeOrderIndex(w, d, v_oo->o_c_id, c);
@@ -703,10 +706,18 @@ void ChOrderLoader::loadBackup() {
           const size_t sz = sizeof(v_no);
           new_order_total_sz += sz;
           n_new_orders++;
-          backup_store_->Insert(NEWO, nokey, (char *) &v_no);
+          uint64_t no_i = backup_store_->Insert(NEWO, nokey, (char *) &v_no);
+
+          // NEWO graph
+          // uint64_t *no_edge = backup_store_->getEdge(NEWO, no_i);
+          // no_edge[0] = no_edge[1] = 0;  // size
+          // no_edge[1] = o_i;
         }
 
         // order line
+        uint64_t *o_edge = backup_store_->getEdge(ORDE, o_i);
+        // o_edge[0] = 0;  // size
+        o_edge[0] = o_edge[1] = 0;  // size
         for (uint l = 1; l <= uint(v_oo->o_ol_cnt); l++) {
           uint64_t olkey = makeOrderLineKey(w, d, c, l);
 
@@ -730,7 +741,18 @@ void ChOrderLoader::loadBackup() {
           const size_t sz = sizeof(*v_ol);
           order_line_total_sz += sz;
           n_order_lines++;
-          backup_store_->Insert(ORLI, olkey, (char *) v_ol);
+          uint64_t ol_i = backup_store_->Insert(ORLI, olkey, (char *) v_ol);
+          assert(l <= 15);
+#if 1  // array
+          o_edge[l] = ol_i;
+          ++o_edge[0];
+#else  // linked list
+          uint64_t *new_edge = new uint64_t[2];
+          new_edge[0] = o_edge[0];
+          new_edge[1] = o_edge[1];
+          o_edge[0] = ol_i;
+          o_edge[1] = (uint64_t) new_edge;
+#endif
         }
       }
     }
@@ -744,6 +766,147 @@ void ChOrderLoader::loadBackup() {
   printf("n_order_lines = %lu\n", n_order_lines);
 
   /* order loader */
+}
+
+extern uint64_t static_orli_hash_fn(uint64_t olid);
+extern uint64_t static_orde_hash_fn(uint64_t oid);
+
+void ChIndexLoader::loadBackup() {
+  vector<uint64_t> o_keys = backup_store_->getStore(ORDE)->getKeyCol();
+  vector<uint64_t> ol_keys = backup_store_->getStore(ORLI)->getKeyCol();
+  // uint64_t ol_tbl_sz = backup_store_->getStore(ORLI)->getOffsetHeader();
+  uint64_t o_tbl_sz = 0;
+  uint64_t ol_tbl_sz = 0;
+  
+  Breakdown_Timer timer;
+  uint64_t mem_before, mem_after, delta;
+  double delta_mb;
+  float time_ms;
+  
+  for (int i = 0; i < ol_keys.size(); ++i) {
+    uint64_t ol_key = ol_keys[i];
+    if (ol_key == 0) {
+      ol_tbl_sz = i;
+      break;
+    }
+  }
+
+  // ----------- Hash ---------------
+  {
+  mem_before = get_system_memory_info().first;
+  timer.start();
+  BackupIndex *hash_index = (BackupIndex *) 
+    new BackupIndexHash(static_orli_hash_fn, ol_tbl_sz * 1.5);
+  for (int i = 0; i < ol_keys.size(); ++i) {
+    uint64_t ol_key = ol_keys[i];
+    if (ol_key == 0) {
+      assert(ol_tbl_sz == i);
+      break;
+    }
+    hash_index->GetWithInsert(ol_key);
+  }
+  time_ms = timer.get_diff_ms();
+  mem_after = get_system_memory_info().first;
+  delta = int64_t(mem_before) - int64_t(mem_after); // free mem
+  delta_mb = double(delta)/1048576.0;
+  printf("***** Hash Index size %lf MB, %lu items, time %lf sec *****\n", 
+         delta_mb, ol_tbl_sz, time_ms / 1000.0);
+  }
+  
+  // ----------- B+Tree ---------------
+  {
+  mem_before = get_system_memory_info().first;
+  timer.start();
+  BackupIndex *tree_index = (BackupIndex *) new BackupTree();
+  for (int i = 0; i < ol_keys.size(); ++i) {
+    uint64_t ol_key = ol_keys[i];
+    if (ol_key == 0) {
+      assert(ol_tbl_sz == i);
+      break;
+    }
+    tree_index->GetWithInsert(ol_key);
+  }
+  time_ms = timer.get_diff_ms();
+  mem_after = get_system_memory_info().first;
+  delta = int64_t(mem_before) - int64_t(mem_after); // free mem
+  delta_mb = double(delta)/1048576.0;
+  printf("***** Tree Index size %lf MB, %lu items, time %lf sec *****\n", 
+         delta_mb, ol_tbl_sz, time_ms / 1000.0);
+  }
+
+  // ----------- Graph Link ---------------
+  {
+  timer.start();
+  mem_before = get_system_memory_info().first;
+  for (int i = 0; i < o_keys.size(); ++i) {
+    if (o_keys[i] == 0) {
+      o_tbl_sz = i;
+      break;
+    }
+  }
+  // uint64_t **o_edges = new uint64_t* [o_tbl_sz];
+  vector<uint64_t *> o_edges(o_tbl_sz, nullptr);
+  
+  for (int i = 0; i < ol_tbl_sz; ++i) {
+    uint64_t ol_key = ol_keys[i];
+    uint64_t o_key = orderLineKeyToOrderKey(ol_key);
+    uint64_t o_i = static_orde_hash_fn(o_key);
+    uint64_t *o_edge = o_edges[o_i];
+    if (o_edge == nullptr) {
+      o_edge = new uint64_t[2];
+      o_edge[0] = i;
+      o_edge[1] = 0;
+    } else {
+      uint64_t *new_edge = new uint64_t[2];
+      new_edge[0] = o_edge[0];
+      new_edge[1] = o_edge[1];
+      o_edge[0] = i;
+      o_edge[1] = (uint64_t) new_edge;
+    
+    }
+  }
+  time_ms = timer.get_diff_ms();
+  mem_after = get_system_memory_info().first;
+  delta = int64_t(mem_before) - int64_t(mem_after); // free mem
+  delta_mb = double(delta)/1048576.0;
+  printf("***** GIndex Link size %lf MB, %lu items, time %lf sec *****\n", 
+         delta_mb, ol_tbl_sz, time_ms / 1000.0);
+  }
+
+  // ----------- Graph Array ---------------
+  {
+  timer.start();
+  mem_before = get_system_memory_info().first;
+  for (int i = 0; i < o_keys.size(); ++i) {
+    if (o_keys[i] == 0) {
+      o_tbl_sz = i;
+      break;
+    }
+  }
+  // uint64_t **o_edges = new uint64_t* [o_tbl_sz];
+  vector<uint64_t *> o_edges(o_tbl_sz, nullptr);
+  
+  for (int i = 0; i < ol_tbl_sz; ++i) {
+    uint64_t ol_key = ol_keys[i];
+    uint64_t o_key = orderLineKeyToOrderKey(ol_key);
+    uint64_t o_i = static_orde_hash_fn(o_key);
+    uint64_t *o_edge = o_edges[o_i];
+    if (o_edge == nullptr) {
+      o_edge = o_edges[o_i] = new uint64_t[16];
+      o_edge[0] = 0;
+    }
+    o_edge[o_edge[0] + 1] = i;
+    o_edge[0]++;
+  }
+  time_ms = timer.get_diff_ms();
+  mem_after = get_system_memory_info().first;
+  delta = int64_t(mem_before) - int64_t(mem_after); // free mem
+  delta_mb = double(delta)/1048576.0;
+  printf("***** GIndex Array size %lf MB, %lu items, time %lf sec *****\n", 
+         delta_mb, ol_tbl_sz, time_ms / 1000.0);
+  }
+  
+  exit(0);
 }
 
 void ChStockLoader::load() {

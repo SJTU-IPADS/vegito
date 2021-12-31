@@ -57,7 +57,7 @@ class ChLogCleaner : public LogCleaner {
 
   // virtual void balance_index(const std::vector<int> &threads);
   // TODO: 240 is so small
-  uint64_t last_no_o_ids_[240][10];
+  // uint64_t last_no_o_ids_[240][10];
 
  private:
   std::vector<int> ware_tp_col_;

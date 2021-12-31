@@ -96,6 +96,14 @@ class BackupStore {
   uint64_t getOffsetHeader() const { return stable_header_; }
   void updateHeader() { stable_header_ = header_; }
 
+  static const int MAX_EDGE_ = 16;  // array
+  // static const int MAX_EDGE_ = 2;  // linked list
+  void addEdge() {
+    edges_ = new uint64_t[MAX_EDGE_ * max_items_];
+  }
+
+  uint64_t *getEdge(uint64_t row_id) const { return &edges_[MAX_EDGE_ * row_id]; }
+
   // return offset in a row and check width
   virtual uint64_t locateCol(int col_id, uint64_t width) const { return 0; };
 
@@ -181,7 +189,8 @@ class BackupStore {
   BackupStore(std::vector<size_t> v, size_t max_items)
     : val_lens_(v), max_items_(max_items), header_(0), stable_header_(0),
       // fake_header_(0),
-      val_off_(v.size(), 0) {
+      val_off_(v.size(), 0),
+      edges_(nullptr) {
 
     if (val_lens_.size() > 0) val_off_[0] = 0;
     for (int i = 1; i < val_lens_.size(); ++i) {
@@ -228,7 +237,8 @@ class BackupStore {
   volatile uint64_t header_;
   uint64_t padding2_[8];
   volatile uint64_t stable_header_;
-  uint64_t padding3_[8];
+  uint64_t padding3_[7];
+  uint64_t *edges_;
 #endif
 };
 

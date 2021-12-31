@@ -165,7 +165,7 @@ QryDescVec ChQueryWorker::get_workload() const {
 
       // micro benchmark
       {"Q23-static", Q23}, {"Q24-update", Q24}, {"Q25-OL-update", Q25},
-      {"Q26-freshness", Q26}, {"Q27-index", Q27}
+      {"Q26-freshness", Q26}, {"Q27-index", Q27}, {"Q28-graph", Q28}
     };
 
   for (int id : qids) {

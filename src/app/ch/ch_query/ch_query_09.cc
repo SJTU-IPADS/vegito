@@ -30,6 +30,10 @@
 using namespace std;
 using namespace nocc::oltp::ch;
 
+#define Q9_STAT_JOIN (STAT_JOIN == 9)
+#define TIMER Q9_STAT_JOIN
+#include "ch_query_timer.h"
+
 namespace {
 
 const char *I_DATA_STR = "BB";
@@ -124,6 +128,7 @@ bool ChQueryWorker::query09(yield_func_t &yield) {
   
   // No need to sort. There are natural order in map
 
+  print_timer(ctxs);
   if (!q_verbose_) return true;
 
   printf("Result of query 9:\n");
@@ -141,6 +146,7 @@ bool ChQueryWorker::query09(yield_func_t &yield) {
 namespace {
 
 void query(void *arg) {
+  declare_timer(timer);  // total join
   Ctx &ctx = *(Ctx *) arg;
   uint64_t cnt = 0;
 
@@ -155,20 +161,36 @@ void query(void *arg) {
     int32_t o_o_id = orderKeyToOrder(o_key);
     int32_t o_w_id = orderKeyToWare(o_key);
     int32_t o_d_id = orderKeyToDistrict(o_key);
-    int8_t o_ol_cnt = o_ol_cnts[o_i];
+    AMOUNT revenue = 0;
 
+    timer_start(timer);
+#if OL_GRAPH == 0
+    int8_t o_ol_cnt = o_ol_cnts[o_i];
     uint64_t start_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, 1);
     uint64_t end_ol_key = makeOrderLineKey(o_w_id, o_d_id, o_o_id, o_ol_cnt);
     assert(o_ol_cnt >= 1 && o_ol_cnt <= 15);
 
     // Nested-loop
-    AMOUNT revenue = 0;
-    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) {
+    for (uint64_t ol_key = start_ol_key; ol_key <= end_ol_key; ++ol_key) 
+#else  // graph
+    uint64_t *o_edge = ctx.db.getEdge(ORDE, o_i);
+    int8_t o_ol_cnt = o_edge[0];
+    for (int i = 1; i <= o_ol_cnt; ++i)
+#endif
+    {
+#if OL_GRAPH == 0
       uint64_t ol_i = ctx.db.getOffset(ORLI, ol_key, ctx.ver);
+#else  // graph
+      uint64_t ol_i = o_edge[i];  // graph
+#endif
       if (ol_i == -1) {
         end = true;
         break;
       }
+
+#if Q9_STAT_JOIN
+      continue;
+#endif
       int32_t ol_i_id = ol_i_ids[ol_i];
       int32_t ol_supply_w_id = ol_supply_w_ids[ol_i];
       AMOUNT ol_amount = ol_amounts[ol_i];
@@ -205,6 +227,7 @@ void query(void *arg) {
         ++cnt;
       }
     }
+    timer_end(timer, ctx, 0);
 
   }
 
