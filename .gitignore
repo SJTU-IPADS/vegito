@@ -1,0 +1,24 @@
+*.o
+
+tags
+
+#ignore vim temporary files
+.*.swp
+
+#ignore python temporary files
+*.pyc
+
+#ignore build files
+build
+
+*.DS_Store
+
+*.vscode
+
+src/research/*
+
+#ignore clangd cache
+.cache
+
+#log files
+logs

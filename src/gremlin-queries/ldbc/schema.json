@@ -1,0 +1,219 @@
+{
+  "vertex_type_map": {
+    "organisation": 0,
+    "place": 1,
+    "tag": 2,
+    "tagclass": 3,
+    "person": 4,
+    "comment": 5,
+    "post": 6,
+    "forum": 7
+  },
+  "edge_type_map": {
+    "org_islocationin": 8,
+    "ispartof": 9,
+    "issubclassof": 10,
+    "hastype": 11,
+    "comment_hascreator": 12,
+    "comment_hastag": 13,
+    "comment_islocationin": 14,
+    "replyof_comment": 15,
+    "replyof_post": 16,
+    "post_hascreator": 17,
+    "post_hastag": 18,
+    "post_islocationin": 19,
+    "forum_containerof": 20,
+    "forum_hasmoderator": 21,
+    "forum_hastag": 22,
+    "person_hasinterest": 23,
+    "person_islocationin": 24,
+    "forum_hasmember": 25,
+    "knows": 26,
+    "likes_comment": 27,
+    "likes_post": 28,
+    "studyat": 29,
+    "workat": 30
+  },
+  "vertex_prop": {
+    "organisation": [
+      [
+        "org_id",
+        "LONG"
+      ],
+      [
+        "org_type",
+        "CHAR"
+      ],
+      [
+        "org_name",
+        "STRING"
+      ],
+      [
+        "org_url",
+        "STRING"
+      ]
+    ],
+    "place": [
+      [
+        "pla_id",
+        "LONG"
+      ],
+      [
+        "pla_type",
+        "CHAR"
+      ],
+      [
+        "pla_name",
+        "STRING"
+      ],
+      [
+        "pla_url",
+        "STRING"
+      ]
+    ],
+    "tag": [
+      [
+        "tag_id",
+        "LONG"
+      ],
+      [
+        "tag_name",
+        "STRING"
+      ],
+      [
+        "tag_url",
+        "STRING"
+      ]
+    ],
+    "tagclass": [
+      [
+        "tagc_id",
+        "LONG"
+      ],
+      [
+        "tagc_name",
+        "STRING"
+      ],
+      [
+        "tagc_url",
+        "STRING"
+      ]
+    ],
+    "person": [
+      [
+        "p_id",
+        "LONG"
+      ],
+      [
+        "p_first_name",
+        "STRING"
+      ],
+      [
+        "p_last_name",
+        "STRING"
+      ],
+      [
+        "p_gender",
+        "STRING"
+      ],
+      [
+        "p_birthday",
+        "STRING"
+      ],
+      [
+        "p_browser_used",
+        "STRING"
+      ],
+      [
+        "p_location_ip",
+        "STRING"
+      ],
+      [
+        "p_creation_date",
+        "STRING"
+      ]
+    ],
+    "comment": [
+      [
+        "co_id",
+        "LONG"
+      ],
+      [
+        "co_browser_used",
+        "STRING"
+      ],
+      [
+        "co_creation_date",
+        "STRING"
+      ],
+      [
+        "co_location_ip",
+        "STRING"
+      ],
+      [
+        "co_content",
+        "STRING"
+      ],
+      [
+        "co_length",
+        "INT"
+      ]
+    ],
+    "post": [
+      [
+        "po_id",
+        "LONG"
+      ],
+      [
+        "po_browser_used",
+        "STRING"
+      ],
+      [
+        "po_creation_date",
+        "STRING"
+      ],
+      [
+        "po_location_ip",
+        "STRING"
+      ],
+      [
+        "po_content",
+        "STRING"
+      ],
+      [
+        "po_length",
+        "INT"
+      ],
+      [
+        "po_language",
+        "STRING"
+      ],
+      [
+        "po_image_file",
+        "STRING"
+      ]
+    ],
+    "forum": [
+      [
+        "fo_id",
+        "LONG"
+      ],
+      [
+        "fo_title",
+        "STRING"
+      ],
+      [
+        "fo_creation_date",
+        "STRING"
+      ]
+    ]
+  },
+  "edge_prop": {
+    "knows": [
+      [
+        "k_creation_date",
+        "STRING"
+      ]
+    ]
+  }
+}

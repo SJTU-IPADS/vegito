@@ -1,0 +1,1 @@
+g.V(144115188075855872).in("replyof_post").out("comment_hascreator")

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<bench>
+  <logger> 1 </logger>
+  <rep_tp_factor> 1 </rep_tp_factor>
+  <rep_ap_factor> 1 </rep_ap_factor>
+  <epoch_type> 4 </epoch_type>
+  <backup_threads> 7 </backup_threads>
+  <query_threads> 0 </query_threads>
+  <query_session> 0 </query_session>
+  <query_verbose> 0 </query_verbose>
+
+  <!-- <scale_factor> 15 </scale_factor> -->
+
+  <epoch> 1 </epoch>
+  <sync_ms> 15 </sync_ms>
+
+  <bstore_type> 2 </bstore_type>
+  <col_split> 2 </col_split>
+  <use_index> 1 </use_index>
+  <lazy_index> 1 </lazy_index>
+
+  <!-- only modify here -->
+  <client> 1  </client>
+  <on_fly> 100 </on_fly>
+  <send_rate> 1 </send_rate>
+
+  <q_client> 0 </q_client>
+  <q_on_fly> 1 </q_on_fly>
+  <q_send_rate> 1 </q_send_rate>
+  <!-- only modify here -->
+
+  <run_sec> 25 </run_sec>
+  <txn_end_sec> 1000 </txn_end_sec>
+  <q_start_sec> 0 </q_start_sec>
+  <q_round> 1000 </q_round>
+
+  <servers>
+    <num> 16 </num>
+    <mapping>
+      <a> val00 </a>
+      <a> val01 </a>
+      <a> val02 </a>
+      <a> val03 </a>
+      <a> val04 </a>
+      <a> val05 </a>
+      <a> val06 </a>
+      <a> val07 </a>
+      <a> val08 </a>
+      <a> val09 </a>
+      <a> val10 </a>
+      <a> val11 </a>
+      <a> val12 </a>
+      <a> val13 </a>
+      <a> val14 </a>
+      <a> val15 </a>
+    </mapping>
+  </servers>
+
+  <ch>
+    <new>45</new>
+    <pay>43</pay>
+    <del>4</del>
+    <stock>4</stock>
+    <order>4</order>
+
+    <!-- <query> 1,2,3,4,5,6,7,8,9,10,  12,13,14,15,16,17,18,19,20,21,22 </query> -->
+    <query> 1,2,3,4,5,6,7,8,9,10,  12,13,14,15,16,17,18,19,20,21,22 </query>
+  </ch>
+</bench>

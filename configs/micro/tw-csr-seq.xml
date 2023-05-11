@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<bench>
+  <backup_threads> 0 </backup_threads>
+  <query_threads> 0 </query_threads>
+  <analytics_threads> 0 </analytics_threads>
+  <scan_threads> 1 </scan_threads>
+
+  <run_sec> 300 </run_sec>
+
+  <graph>
+    <grape_engine> 0 </grape_engine>
+  </graph>
+
+  <servers>
+    <num> 1 </num>
+    <mapping>
+      <a> meepo3 </a>
+    </mapping>
+  </servers>
+
+  <wiki>
+    <graph_type>csr</graph_type>
+    <dataset_dir>/mnt/nfs/graph_htap_data/twitter-2010_</dataset_dir>
+    <file_num>1</file_num>
+    <random>false</random>
+  </wiki>
+</bench>

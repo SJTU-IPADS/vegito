@@ -1,0 +1,7 @@
+g.V().hasLabel('person').has('p_id', 4398046524077) \
+  .both('knows') \
+  .union(identity(), both('knows')) \
+  .dedup() \
+  .has('p_id', neq(4398046524077)).as('friends') \
+  .in('post_hascreator').as('post') \
+  .order().by('po_creation_date', desc).by('po_id', asc).limit(20)

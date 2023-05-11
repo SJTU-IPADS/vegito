@@ -1,0 +1,1 @@
+g.V(144115188075855872).out("customer_item").properties("i_name", "i_price", "i_im_id")

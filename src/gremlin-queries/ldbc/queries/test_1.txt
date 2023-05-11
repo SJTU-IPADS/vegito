@@ -1,0 +1,1 @@
+g.V().hasLabel('person').has('p_id', 4398046524077).count()

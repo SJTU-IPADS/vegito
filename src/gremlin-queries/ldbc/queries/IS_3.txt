@@ -1,0 +1,1 @@
+g.V(288230376151711744).out("knows").properties("p_id", "p_first_name", "p_last_name")

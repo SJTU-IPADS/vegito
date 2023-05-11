@@ -1,0 +1,63 @@
+{
+  "vertex_type_map": {
+    "order": 5,
+    "orderline": 6
+  },
+  "edge_type_map": {
+    "order_orderline": 0,
+    "orderline_order": 1
+  },
+  "vertex_prop": {
+    "order": [
+      [
+        "pr",
+        "DOUBLE"
+      ],
+      [
+        "carrier_id",
+        "INT"
+      ],
+      [
+        "c_id",
+        "INT"
+      ],
+      [
+        "ol_cnt",
+        "CHAR"
+      ], 
+      [
+        "entry_d",
+        "INT"
+      ]
+    ],
+    "orderline": [
+      [
+        "pr",
+        "DOUBLE"
+      ],
+      [
+        "delivery_d",
+        "INT"
+      ],
+      [
+        "i_id",
+        "INT"
+      ],
+      [
+        "amount",
+        "FLOAT"
+      ],
+      [
+        "supply_w_id",
+        "INT"
+      ],
+      [
+        "quantity",
+        "CHAR"
+      ]
+    ]
+  },
+  "edge_prop": {
+    
+  }
+}

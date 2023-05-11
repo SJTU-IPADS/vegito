@@ -1,0 +1,2 @@
+g.V(288230376151711744) \
+  .both('knows').properties('p_first_name', 'p_last_name')

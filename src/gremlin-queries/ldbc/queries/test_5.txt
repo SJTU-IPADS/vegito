@@ -1,0 +1,1 @@
+g.V().hasLabel('person').has('p_id', 6597069780295).properties('p_first_name', 'p_last_name', 'p_birthday', 'p_creation_date')
