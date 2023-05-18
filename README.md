@@ -61,6 +61,6 @@ If you use GART for HTGAP in your research, please cite our paper:
 
 ## Academic and Conference Papers
 
-[**OSDI' 21**] Retrofitting High Availability Mechanism to Tame Hybrid Transaction/Analytical Processing. Sijie Shen, Rong Chen, Haibo Chen, Binyu Zang. The 15th USENIX Symposium on Operating Systems Design and Implementation, Santa Clara, CA, US, July 2021. [Home](https://www.usenix.org/conference/osdi21/presentation/shen)
+[**OSDI' 21**] [Retrofitting High Availability Mechanism to Tame Hybrid Transaction/Analytical Processing](https://www.usenix.org/conference/osdi21/presentation/shen). Sijie Shen, Rong Chen, Haibo Chen, Binyu Zang. The 15th USENIX Symposium on Operating Systems Design and Implementation, Santa Clara, CA, US, July 2021.
 
-[**ATC' 23**] Bridging the Gap between Relational OLTP and Graph-based OLAP. Sijie Shen, Zihang Yao, Lin Shi, Lei Wang, Longbin Lai, Qian Tao, Li Su, Rong Chen*, Wenyuan Yu, Haibo Chen, Binyu Zang, and Jingren Zhou. 2023 USENIX Annual Technical Conference, Boston, MA, US, July 2023.
+[**USENIX ATC' 23**] [Bridging the Gap between Relational OLTP and Graph-based OLAP](https://www.usenix.org/conference/atc23/presentation/shen). Sijie Shen, Zihang Yao, Lin Shi, Lei Wang, Longbin Lai, Qian Tao, Li Su, Rong Chen*, Wenyuan Yu, Haibo Chen, Binyu Zang, and Jingren Zhou. 2023 USENIX Annual Technical Conference, Boston, MA, US, July 2023.
